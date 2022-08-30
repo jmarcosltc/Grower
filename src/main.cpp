@@ -7,7 +7,7 @@
  This code is copyrighted and is under an MIT License. You are not allowed to use it commercially
  without explicit written approval.
 
- GitHub: https://github.com/jmarcosltc
+ GitHub: https://github.com/jmarcosltc/Grower
  */
 
 #include <dht.h>
@@ -28,8 +28,8 @@ unsigned long previousMillis = 0;
 unsigned long segundoPreviousMillis = 0;
 unsigned long currentMillis;
 unsigned long segundoCurrentMillis;
-const unsigned long intervalo = 7000;
-const unsigned long segundoIntervalo = 800;
+const unsigned long intervalo = 800;
+const unsigned long segundoIntervalo = 1200;
 // --- Variáveis de tempo ---
 
 // --- Variáveis do display ---
@@ -45,8 +45,8 @@ int percentageMoisture;
 const int dhtPin = 5;
 #define dhtType DHT11
 
-float temperatura = 0x00;
-float umidade = 0x00;
+int temperatura = 0x00;
+int umidade = 0x00;
 
 dht my_dht;
 // --- Variáveis do DHT11 ---
@@ -56,9 +56,13 @@ float moisturePin = A1;
 float moistureValue = 0;
 float moisture = 0;
 
-const int WET = 489;  // molhado
-const int DRY = 1020; // seco
+const int WET = 96;   // molhado
+const int DRY = 1046; // seco
 // --- Variáveis do Mositure ---
+
+// --- Relés ---
+const int relePin = 8;
+// --- Relés ---
 
 void setup()
 {
@@ -71,6 +75,10 @@ void setup()
     for (;;)
       ; // Don't proceed, loop forever
   }
+
+  // Relé
+  pinMode(relePin, OUTPUT);
+  digitalWrite(relePin, HIGH);
 
   Serial.println("Feito setup");
 }
@@ -128,11 +136,12 @@ int displayMain()
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setCursor(0, 0);
-  display.print(F("Temp: "));
+  display.print(F("Temperatura: "));
   display.print(dhtTempMain());
-  display.print(F(" C"));
+  display.write(248);
+  display.print(F("C"));
   display.setCursor(0, 8);
-  display.print(F("Umidade: "));
+  display.print(F("Umidade do ar: "));
   display.print(dhtUmidMain());
   display.print(F("%"));
 
@@ -154,24 +163,22 @@ int displayPump()
 
 int pumpMain(float moistureValue)
 {
+  // acionar a pump e começar processo de irrigação
 
-  while (moistureValue >= 590 && moistureValue <= 936)
+  if (moistureValue >= 936)
   {
-    // acionar a pump e começar processo de irrigação
-  }
-
-  if (moistureValue < 590)
-  {
-    Serial.println("Terra molhada.");
-  }
-  else if (moistureValue >= 590 && moistureValue < 936)
-  {
-    Serial.println("Terra umida.");
+    digitalWrite(relePin, LOW);
+    Serial.println("Terra seca.");
   }
   else
   {
-    Serial.println("Terra seca.");
+    digitalWrite(relePin, HIGH);
+    Serial.println("Terra umida.");
   }
+
+  Serial.print("Umidade da terra: ");
+  Serial.println(moistureValue);
+
   delay(200);
 
   return 0;
@@ -181,14 +188,23 @@ int pumpMain(float moistureValue)
 int moistureMain()
 {
 
-  moistureValue = analogRead(moisturePin);
+  int moistureAvg = 0;
+
+  for (int i = 0; i < 100; i++)
+  {
+    moistureValue += analogRead(moisturePin);
+  }
+
+  moistureAvg = moistureValue / 100;
+  moistureValue = 0;
+
   delay(200);
 
-  return moistureValue;
+  return moistureAvg;
 }
 
 // DHT11 Functions
-float dhtTempMain()
+int dhtTempMain()
 {
   my_dht.read11(dhtPin);
   temperatura = my_dht.temperature;
@@ -203,7 +219,7 @@ float dhtTempMain()
   return temperatura;
 }
 
-float dhtUmidMain()
+int dhtUmidMain()
 {
   my_dht.read11(dhtPin);
   umidade = my_dht.humidity;
