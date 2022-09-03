@@ -8,7 +8,6 @@
  without explicit written approval.
 
  GitHub: https://github.com/jmarcosltc/Grower
-
  */
 
 #include <dht.h>
@@ -24,6 +23,8 @@
  * Current millis: tempo atual do ciclo
  * Intevalo: Tempo de duração do ciclo
  */
+
+// Nome das variáveis precisa ser mudado
 
 unsigned long previousMillis = 0;
 unsigned long segundoPreviousMillis = 0;
@@ -145,28 +146,20 @@ int displayMain()
   display.print(F("Umidade do ar: "));
   display.print(dhtUmidMain());
   display.print(F("%"));
-
   displayUmidade = moistureMain();
-  percentageMoisture = map(displayUmidade, WET, DRY, 100, 0);
-
   display.setCursor(0, 16);
   display.print(F("Umidade da terra: "));
-  display.print(percentageMoisture);
+  display.print(displayUmidade);
   display.print(F("%"));
   display.display();
   delay(200);
-}
-
-// Irrigation
-int displayPump()
-{
 }
 
 int pumpMain(float moistureValue)
 {
   // acionar a pump e começar processo de irrigação
 
-  if (moistureValue >= 936)
+  if (moistureValue <= 80)
   {
     digitalWrite(relePin, LOW);
     Serial.println("Terra seca.");
@@ -190,18 +183,24 @@ int moistureMain()
 {
 
   int moistureAvg = 0;
+  int moistureAvgPerc = 0;
 
   for (int i = 0; i < 100; i++)
   {
     moistureValue += analogRead(moisturePin);
+    delay(1);
   }
 
+  // Média dos valores para que o sensor tenha mais precisão
   moistureAvg = moistureValue / 100;
   moistureValue = 0;
 
+  // Valor entre 0 - 100
+  moistureAvgPerc = map(moistureAvg, WET, DRY, 100, 0);
+
   delay(200);
 
-  return moistureAvg;
+  return moistureAvgPerc;
 }
 
 // DHT11 Functions
